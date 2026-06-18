@@ -18,6 +18,10 @@ scripts/fulmen-live      Symlink installer and status tool
 scripts/validate         Repository validation checks
 ```
 
+See `docs/pathworking.md` for the Tree of Life pathworking model behind the
+Fulmen flow, including the Malkuth -> Kether -> Malkuth diagnostic/execution
+loop and the verifier's place in Hod.
+
 ## Install
 
 ```bash

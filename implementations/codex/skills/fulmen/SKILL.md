@@ -33,6 +33,30 @@ Spawn subagents with `multi_agent_v1.spawn_agent`. Set `agent_type` to
 
 ---
 
+## Conceptual Pathworking Model (Non-Operational)
+
+This section is conceptual documentation only. It does not add a runtime phase,
+change mode selection, alter invocation order, or modify any Fulmen execution
+semantics.
+
+Fulmen can be read as a Tree of Life pathworking model. In that model, Da'at is
+the compressed Fulmen brief: goal, constraints, scope, and definition of done.
+Hod is the mapping and analytical function expressed by Explorer and Verifier;
+Verifier is a Hod specialization that checks claims, exposes unstable work, and
+confirms the result still matches the intended form.
+
+The existing downward execution sequence is the Lightning Flash: root task ->
+brief -> planner/critic -> integrated plan -> worker/verifier -> assembler ->
+final artifact. This is the ordinary operational order already described below.
+
+For unclear, architectural, creative, or artifact-first tasks, the optional
+Malkuth -> Kether -> Malkuth loop is only a diagnostic lens: start from the
+current artifact or visible result, recover the root intention, then descend
+again into a clearer artifact. It may inform how the orchestrator thinks about a
+task, but it does not add a new step or change when agents are invoked.
+
+---
+
 ## Step 0 - Mode Decision
 
 Assess the task complexity:
