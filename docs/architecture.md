@@ -22,6 +22,9 @@ agents.
 ## Operating Rules
 
 - Delegate bounded sidecar work only when it materially advances the task.
+- Use platform-supported budget controls conservatively: preserve inherited
+  defaults when uncertain or when risk, ambiguity, or implementation complexity
+  is high.
 - Keep planner and critic read-only.
 - Keep explorer read-only.
 - Give worker an explicit write scope.

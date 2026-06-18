@@ -25,6 +25,15 @@ Spawn subagents with `multi_agent_v1.spawn_agent`. Set `agent_type` to
 `planner`, `critic`, `explorer`, `worker`, `verifier`, or `assembler`.
 
 - Omit model overrides unless the task specifically needs one.
+- `reasoning_effort` may be set to `low`, `medium`, `high`, or `xhigh` for
+  Codex subagents when supported by the current model/environment and when the
+  task warrants it. Omit the override when unsure, when requirements are
+  ambiguous, or when risk is high.
+- Use lower reasoning effort only for bounded, low-risk work: narrow read-only
+  exploration, simple assembly, or mechanical scoped edits. Keep the inherited
+  default for strategy, critique, non-trivial implementation, verification,
+  security-sensitive work, destructive operations, migrations, user data,
+  concurrency, broad edits, or failing validation.
 - Keep `fork_context: false` unless inherited context is explicitly useful.
 - Wait with `multi_agent_v1.wait_agent` only when the next step is blocked on
   that agent's result. While agents run, continue non-overlapping local work

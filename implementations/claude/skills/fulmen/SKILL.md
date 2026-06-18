@@ -14,6 +14,14 @@ Fulmen uses these subagent roles: `planner`, `critic`, `explorer`, `worker`,
 
 ---
 
+## Claude Platform Notes
+
+Fulmen defines no Claude-specific reasoning-effort override. Use the platform's
+normal agent invocation behavior unless a supported Claude setting is explicitly
+available in the current environment.
+
+---
+
 ## Step 0 - Mode Decision
 
 Assess the task complexity:
