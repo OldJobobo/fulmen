@@ -1,0 +1,6 @@
+interface:
+  display_name: "Fulmen"
+  short_description: "Run the Fulmen delegated subagent harness."
+  default_prompt: "Use $fulmen to orchestrate this task with the Fulmen planner, critic, explorer, worker, verifier, and optional assembly flow."
+policy:
+  allow_implicit_invocation: false

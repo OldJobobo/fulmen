@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+roles=(planner critic explorer worker verifier assembler)
+failures=0
+
+fail() {
+  printf 'validate: %s\n' "$*" >&2
+  failures=$((failures + 1))
+}
+
+require_file() {
+  [[ -f "$1" ]] || fail "missing file: $1"
+}
+
+require_contains() {
+  local file="$1"
+  local pattern="$2"
+  if ! grep -Eq "$pattern" "$file"; then
+    fail "missing pattern in $file: $pattern"
+  fi
+}
+
+codex_skill="$ROOT_DIR/implementations/codex/skills/fulmen/SKILL.md"
+claude_skill="$ROOT_DIR/implementations/claude/skills/fulmen/SKILL.md"
+
+require_file "$codex_skill"
+require_file "$claude_skill"
+require_file "$ROOT_DIR/implementations/codex/skills/fulmen/agents/openai.yaml"
+
+for role in "${roles[@]}"; do
+  require_file "$ROOT_DIR/implementations/codex/agents/$role.toml"
+  require_file "$ROOT_DIR/implementations/claude/agents/$role.md"
+  require_contains "$codex_skill" "\\b$role\\b"
+  require_contains "$claude_skill" "\\b$role\\b"
+done
+
+for file in "$ROOT_DIR"/implementations/codex/agents/*.toml; do
+  require_contains "$file" '^name = "'
+  require_contains "$file" '^description = "'
+  require_contains "$file" '^sandbox_mode = "(read-only|workspace-write|danger-full-access)"'
+  require_contains "$file" '^developer_instructions = """'
+done
+
+for file in "$ROOT_DIR"/implementations/claude/agents/*.md; do
+  require_contains "$file" '^---$'
+  require_contains "$file" '^name: '
+  require_contains "$file" '^description: '
+  require_contains "$file" '^model: '
+  require_contains "$file" 'disallowedTools:'
+done
+
+require_contains "$ROOT_DIR/implementations/codex/agents/verifier.toml" 'sandbox_mode = "read-only"'
+require_contains "$ROOT_DIR/implementations/codex/agents/verifier.toml" 'Do not write or edit any files'
+require_contains "$ROOT_DIR/implementations/claude/agents/verifier.md" 'disallowedTools: \["Edit", "Write", "Agent"\]'
+require_contains "$ROOT_DIR/implementations/claude/agents/verifier.md" 'Do not write or edit any files'
+
+if [[ "$failures" -gt 0 ]]; then
+  printf 'validate failed: %s issue(s)\n' "$failures" >&2
+  exit 1
+fi
+
+printf 'validate ok\n'

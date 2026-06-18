@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKUP_ROOT="${FULMEN_BACKUP_ROOT:-$HOME/.local/share/fulmen/backups}"
+
+roles=(planner critic explorer worker verifier assembler)
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/fulmen-live <command>
+
+Commands:
+  install    Link this repo into ~/.codex and ~/.claude
+  status     Show live target status
+  doctor     Validate repo files and live links
+  uninstall  Remove repo-owned live symlinks only
+EOF
+}
+
+target_source() {
+  local target="$1"
+  case "$target" in
+    "$HOME/.codex/skills/fulmen") printf '%s\n' "$ROOT_DIR/implementations/codex/skills/fulmen" ;;
+    "$HOME/.claude/skills/fulmen") printf '%s\n' "$ROOT_DIR/implementations/claude/skills/fulmen" ;;
+    "$HOME/.codex/agents/"*.toml)
+      local base
+      base="$(basename "$target")"
+      printf '%s\n' "$ROOT_DIR/implementations/codex/agents/$base"
+      ;;
+    "$HOME/.claude/agents/"*.md)
+      local base
+      base="$(basename "$target")"
+      printf '%s\n' "$ROOT_DIR/implementations/claude/agents/$base"
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+all_targets() {
+  printf '%s\n' "$HOME/.codex/skills/fulmen"
+  local role
+  for role in "${roles[@]}"; do
+    printf '%s\n' "$HOME/.codex/agents/$role.toml"
+  done
+  printf '%s\n' "$HOME/.claude/skills/fulmen"
+  for role in "${roles[@]}"; do
+    printf '%s\n' "$HOME/.claude/agents/$role.md"
+  done
+}
+
+is_repo_link() {
+  local target="$1"
+  [[ -L "$target" ]] || return 1
+  local resolved
+  resolved="$(readlink -f "$target")"
+  case "$resolved" in
+    "$ROOT_DIR"|"$ROOT_DIR"/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+link_status() {
+  local target="$1"
+  local source
+  source="$(target_source "$target")"
+
+  if [[ -L "$target" ]]; then
+    local resolved
+    resolved="$(readlink -f "$target" || true)"
+    if [[ "$resolved" == "$(readlink -f "$source")" ]]; then
+      printf 'linked   %s -> %s\n' "$target" "$source"
+    elif is_repo_link "$target"; then
+      printf 'repo     %s -> %s\n' "$target" "$resolved"
+    else
+      printf 'foreign  %s -> %s\n' "$target" "$resolved"
+    fi
+  elif [[ -e "$target" ]]; then
+    printf 'file     %s\n' "$target"
+  else
+    printf 'missing  %s\n' "$target"
+  fi
+}
+
+backup_existing() {
+  local target="$1"
+  local stamp="$2"
+  [[ -e "$target" || -L "$target" ]] || return 0
+
+  if is_repo_link "$target"; then
+    rm -f "$target"
+    return 0
+  fi
+
+  local rel backup
+  rel="${target#"$HOME"/}"
+  backup="$BACKUP_ROOT/$stamp/$rel"
+  mkdir -p "$(dirname "$backup")"
+  mv "$target" "$backup"
+  printf 'backed up %s -> %s\n' "$target" "$backup"
+}
+
+install_links() {
+  local stamp
+  stamp="$(date +%Y%m%d-%H%M%S)"
+
+  local target source
+  while IFS= read -r target; do
+    source="$(target_source "$target")"
+    if [[ ! -e "$source" ]]; then
+      printf 'missing source: %s\n' "$source" >&2
+      return 1
+    fi
+    mkdir -p "$(dirname "$target")"
+    backup_existing "$target" "$stamp"
+    ln -sfn "$source" "$target"
+    printf 'linked %s -> %s\n' "$target" "$source"
+  done < <(all_targets)
+}
+
+status_links() {
+  local target
+  while IFS= read -r target; do
+    link_status "$target"
+  done < <(all_targets)
+}
+
+uninstall_links() {
+  local target
+  while IFS= read -r target; do
+    if is_repo_link "$target"; then
+      rm -f "$target"
+      printf 'removed %s\n' "$target"
+    else
+      printf 'kept    %s\n' "$target"
+    fi
+  done < <(all_targets)
+}
+
+doctor() {
+  "$ROOT_DIR/scripts/validate"
+
+  local failures=0
+  local target source
+  while IFS= read -r target; do
+    source="$(target_source "$target")"
+    if [[ ! -L "$target" ]]; then
+      printf 'not linked: %s\n' "$target" >&2
+      failures=$((failures + 1))
+      continue
+    fi
+    if [[ "$(readlink -f "$target")" != "$(readlink -f "$source")" ]]; then
+      printf 'wrong link: %s\n' "$target" >&2
+      failures=$((failures + 1))
+    fi
+  done < <(all_targets)
+
+  if [[ "$failures" -gt 0 ]]; then
+    printf 'doctor failed: %s live target(s) need attention\n' "$failures" >&2
+    return 1
+  fi
+
+  printf 'doctor ok\n'
+}
+
+case "${1:-}" in
+  install) install_links ;;
+  status) status_links ;;
+  doctor) doctor ;;
+  uninstall) uninstall_links ;;
+  -h|--help|help) usage ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
