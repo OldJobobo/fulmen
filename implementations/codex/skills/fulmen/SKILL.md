@@ -1,6 +1,6 @@
 ---
 name: fulmen
-description: Orchestrate the Fulmen multi-agent harness: planner -> critic -> explorer -> worker -> verifier -> optional assembler. Use when the user explicitly invokes Fulmen or asks for delegated subagent work on a task.
+description: "Orchestrate the Fulmen multi-agent harness: planner -> critic -> explorer -> worker -> verifier -> optional assembler. Use when the user explicitly invokes Fulmen or asks for delegated subagent work on a task."
 ---
 
 # Fulmen
