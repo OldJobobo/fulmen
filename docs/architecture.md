@@ -22,9 +22,14 @@ agents.
 ## Operating Rules
 
 - Delegate bounded sidecar work only when it materially advances the task.
+- Use platform-supported budget controls conservatively: preserve inherited
+  defaults when uncertain or when risk, ambiguity, or implementation complexity
+  is high.
 - Keep planner and critic read-only.
 - Keep explorer read-only.
 - Give worker an explicit write scope.
 - Give verifier completed claims and changed paths, not an open-ended task.
 - Use assembler only for assembly, not new analysis.
+- Close completed or no-longer-needed subagents after their outputs have been
+  incorporated. Do not carry completed agents between Fulmen runs.
 - The parent remains responsible for final correctness.

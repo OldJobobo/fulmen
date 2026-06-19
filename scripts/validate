@@ -22,18 +22,52 @@ require_contains() {
   fi
 }
 
+reject_contains() {
+  local file="$1"
+  local pattern="$2"
+  if grep -Eq "$pattern" "$file"; then
+    fail "unexpected pattern in $file: $pattern"
+  fi
+}
+
+reject_unquoted_frontmatter_colons() {
+  local file="$1"
+  if awk '
+    BEGIN { in_fm = 0; line = 0 }
+    /^---$/ { in_fm = !in_fm; next }
+    in_fm {
+      line++
+      if ($0 ~ /^[A-Za-z_][A-Za-z0-9_-]*: [^"'\''[{].*: /) {
+        printf "%s:%d:%s\n", FILENAME, FNR, $0
+        found = 1
+      }
+    }
+    END { exit found ? 0 : 1 }
+  ' "$file"; then
+    fail "unquoted YAML frontmatter value contains ': ': $file"
+  fi
+}
+
 codex_skill="$ROOT_DIR/implementations/codex/skills/fulmen/SKILL.md"
 claude_skill="$ROOT_DIR/implementations/claude/skills/fulmen/SKILL.md"
 
 require_file "$codex_skill"
 require_file "$claude_skill"
 require_file "$ROOT_DIR/implementations/codex/skills/fulmen/agents/openai.yaml"
+reject_unquoted_frontmatter_colons "$codex_skill"
+reject_unquoted_frontmatter_colons "$claude_skill"
+reject_contains "$ROOT_DIR/implementations/codex/skills/fulmen/agents/openai.yaml" 'allow_implicit_invocation: false'
 
 for role in "${roles[@]}"; do
   require_file "$ROOT_DIR/implementations/codex/agents/$role.toml"
   require_file "$ROOT_DIR/implementations/claude/agents/$role.md"
   require_contains "$codex_skill" "\\b$role\\b"
   require_contains "$claude_skill" "\\b$role\\b"
+done
+
+for option in low standard high light full pathworking; do
+  require_contains "$codex_skill" "\\-$option\\b"
+  require_contains "$claude_skill" "\\-$option\\b"
 done
 
 for file in "$ROOT_DIR"/implementations/codex/agents/*.toml; do
@@ -49,12 +83,15 @@ for file in "$ROOT_DIR"/implementations/claude/agents/*.md; do
   require_contains "$file" '^description: '
   require_contains "$file" '^model: '
   require_contains "$file" 'disallowedTools:'
+  reject_unquoted_frontmatter_colons "$file"
 done
 
 require_contains "$ROOT_DIR/implementations/codex/agents/verifier.toml" 'sandbox_mode = "read-only"'
 require_contains "$ROOT_DIR/implementations/codex/agents/verifier.toml" 'Do not write or edit any files'
 require_contains "$ROOT_DIR/implementations/claude/agents/verifier.md" 'disallowedTools: \["Edit", "Write", "Agent"\]'
 require_contains "$ROOT_DIR/implementations/claude/agents/verifier.md" 'Do not write or edit any files'
+require_contains "$codex_skill" 'multi_agent_v1\.close_agent'
+require_contains "$codex_skill" 'Do not reuse completed agents across separate'
 
 if [[ "$failures" -gt 0 ]]; then
   printf 'validate failed: %s issue(s)\n' "$failures" >&2

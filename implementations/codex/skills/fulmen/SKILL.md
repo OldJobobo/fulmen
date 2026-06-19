@@ -1,6 +1,6 @@
 ---
 name: fulmen
-description: Orchestrate the Fulmen multi-agent harness: planner -> critic -> explorer -> worker -> verifier -> optional assembler. Use when the user explicitly invokes Fulmen or asks for delegated subagent work on a task.
+description: "Orchestrate the Fulmen multi-agent harness: planner -> critic -> explorer -> worker -> verifier -> optional assembler. Use when the user explicitly invokes Fulmen or asks for delegated subagent work on a task."
 ---
 
 # Fulmen
@@ -25,35 +25,58 @@ Spawn subagents with `multi_agent_v1.spawn_agent`. Set `agent_type` to
 `planner`, `critic`, `explorer`, `worker`, `verifier`, or `assembler`.
 
 - Omit model overrides unless the task specifically needs one.
+- `reasoning_effort` may be set to `low`, `medium`, `high`, or `xhigh` for
+  Codex subagents when supported by the current model/environment and when the
+  task warrants it. Omit the override when unsure, when requirements are
+  ambiguous, or when risk is high.
+- Use lower reasoning effort only for bounded, low-risk work: narrow read-only
+  exploration, simple assembly, or mechanical scoped edits. Keep the inherited
+  default for strategy, critique, non-trivial implementation, verification,
+  security-sensitive work, destructive operations, migrations, user data,
+  concurrency, broad edits, or failing validation.
 - Keep `fork_context: false` unless inherited context is explicitly useful.
 - Wait with `multi_agent_v1.wait_agent` only when the next step is blocked on
   that agent's result. While agents run, continue non-overlapping local work
   when useful.
+- Track every spawned agent id. After each agent's output has been incorporated
+  and no further same-run follow-up depends on that agent's context, close it
+  with `multi_agent_v1.close_agent`.
+- Reuse a live subagent only for a same-run follow-up that genuinely depends on
+  that agent's existing context. Do not reuse completed agents across separate
+  Fulmen invocations; close them and spawn fresh bounded agents next time.
 - Keep planner -> critic serial: the critic must receive the planner output.
 
 ---
 
-## Conceptual Pathworking Model (Non-Operational)
+## Invocation Options
 
-This section is conceptual documentation only. It does not add a runtime phase,
-change mode selection, alter invocation order, or modify any Fulmen execution
-semantics.
+Fulmen accepts compact skill-level options in the user prompt. These are not
+native CLI arguments; interpret them as orchestration preferences.
 
-Fulmen can be read as a Tree of Life pathworking model. In that model, Da'at is
-the compressed Fulmen brief: goal, constraints, scope, and definition of done.
-Hod is the mapping and analytical function expressed by Explorer and Verifier;
-Verifier is a Hod specialization that checks claims, exposes unstable work, and
-confirms the result still matches the intended form.
+- Budget: `-low`, `-standard`, `-high`
+- Flow: `-light`, `-full`, `-pathworking`
 
-The existing downward execution sequence is the Lightning Flash: root task ->
-brief -> planner/critic -> integrated plan -> worker/verifier -> assembler ->
-final artifact. This is the ordinary operational order already described below.
+If options conflict, prefer safety: `-high` beats `-low`, `-full` beats
+`-light`, and `-pathworking` combines with either flow mode. Mention unknown
+options in the Fulmen brief and ignore them unless they create real ambiguity.
 
-For unclear, architectural, creative, or artifact-first tasks, the optional
-Malkuth -> Kether -> Malkuth loop is only a diagnostic lens: start from the
-current artifact or visible result, recover the root intention, then descend
-again into a clearer artifact. It may inform how the orchestrator thinks about a
-task, but it does not add a new step or change when agents are invoked.
+- `-low`: optimize token use. Keep more sphere work in the parent session,
+  spawn only subagents that materially reduce risk or context pollution, and
+  use lower `reasoning_effort` only for low-risk eligible subagents.
+- `-standard`: default Fulmen behavior. Choose Lightweight or Full mode from
+  task complexity and omit reasoning overrides unless clearly useful.
+- `-high`: prioritize quality over token reduction. Avoid lower reasoning
+  effort and keep verifier for non-trivial changes.
+- `-light`: use Lightweight Mode unless the task grows enough to require Full.
+- `-full`: use the full planner -> critic -> explorer -> worker -> verifier ->
+  optional assembler flow.
+- `-pathworking`: perform a compact parent-side Malkuth -> Kether diagnosis
+  before normal execution. Do not spawn extra agents only for the symbolic
+  framing.
+
+For Tree of Life background, read `docs/pathworking.md` only when the user asks
+for `-pathworking`, asks a conceptual Fulmen question, or the task depends on
+that model.
 
 ---
 
@@ -198,6 +221,11 @@ Review the final output against the Fulmen brief:
 - Were the critic's risks addressed, mitigated, or explicitly accepted?
 - Were verifier findings resolved or explicitly reported?
 
+Before the final response, close all completed or no-longer-needed Fulmen
+subagents with `multi_agent_v1.close_agent`. Do this after their outputs are
+captured and before reporting completion, so repeated `$fulmen` runs do not
+consume the session's open agent thread budget.
+
 Report the review to the user. Flag any gaps. This closes the run.
 
 ---
@@ -223,4 +251,5 @@ Then:
    findings.
 3. Use `multi_agent_v1.spawn_agent` with `agent_type: "verifier"` for
    non-trivial code changes.
-4. Review output against the scope note and report to the user.
+4. Close completed or no-longer-needed Fulmen subagents.
+5. Review output against the scope note and report to the user.

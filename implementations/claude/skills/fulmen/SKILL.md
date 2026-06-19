@@ -1,6 +1,6 @@
 ---
 name: fulmen
-description: Orchestrate the Fulmen multi-agent harness: planner -> critic -> explorer -> worker -> verifier -> optional assembler. Use when the user invokes Fulmen or a task benefits from delegated subagent work.
+description: "Orchestrate the Fulmen multi-agent harness: planner -> critic -> explorer -> worker -> verifier -> optional assembler. Use when the user invokes Fulmen or a task benefits from delegated subagent work."
 ---
 
 # Fulmen
@@ -14,27 +14,38 @@ Fulmen uses these subagent roles: `planner`, `critic`, `explorer`, `worker`,
 
 ---
 
-## Conceptual Pathworking Model (Non-Operational)
+## Invocation Options
 
-This section is conceptual documentation only. It does not add a runtime phase,
-change mode selection, alter invocation order, or modify any Fulmen execution
-semantics.
+Fulmen accepts compact skill-level options in the user prompt. These are not
+native CLI arguments; interpret them as orchestration preferences.
 
-Fulmen can be read as a Tree of Life pathworking model. In that model, Da'at is
-the compressed Fulmen brief: goal, constraints, scope, and definition of done.
-Hod is the mapping and analytical function expressed by Explorer and Verifier;
-Verifier is a Hod specialization that checks claims, exposes unstable work, and
-confirms the result still matches the intended form.
+- Budget: `-low`, `-standard`, `-high`
+- Flow: `-light`, `-full`, `-pathworking`
 
-The existing downward execution sequence is the Lightning Flash: root task ->
-brief -> planner/critic -> integrated plan -> worker/verifier -> assembler ->
-final artifact. This is the ordinary operational order already described below.
+If options conflict, prefer safety: `-high` beats `-low`, `-full` beats
+`-light`, and `-pathworking` combines with either flow mode. Mention unknown
+options in the Fulmen brief and ignore them unless they create real ambiguity.
 
-For unclear, architectural, creative, or artifact-first tasks, the optional
-Malkuth -> Kether -> Malkuth loop is only a diagnostic lens: start from the
-current artifact or visible result, recover the root intention, then descend
-again into a clearer artifact. It may inform how the orchestrator thinks about a
-task, but it does not add a new step or change when agents are invoked.
+- `-low`: optimize token use. Keep more sphere work in the parent session and
+  spawn only subagents that materially reduce risk or context pollution.
+- `-standard`: default Fulmen behavior. Choose Lightweight or Full mode from
+  task complexity.
+- `-high`: prioritize quality over token reduction. Keep verifier for
+  non-trivial changes.
+- `-light`: use Lightweight Mode unless the task grows enough to require Full.
+- `-full`: use the full planner -> critic -> explorer -> worker -> verifier ->
+  optional assembler flow.
+- `-pathworking`: perform a compact parent-side Malkuth -> Kether diagnosis
+  before normal execution. Do not spawn extra agents only for the symbolic
+  framing.
+
+Fulmen defines no Claude-specific reasoning-effort override. Use the platform's
+normal agent invocation behavior unless a supported Claude setting is explicitly
+available in the current environment.
+
+For Tree of Life background, read `docs/pathworking.md` only when the user asks
+for `-pathworking`, asks a conceptual Fulmen question, or the task depends on
+that model.
 
 ---
 
