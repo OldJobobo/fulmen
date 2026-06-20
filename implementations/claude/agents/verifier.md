@@ -19,6 +19,9 @@ Independently verify a completed code change before the parent claims it is done
 Re-check the change against the whole relevant feature surface and the real
 runtime path.
 
+Verify against the original user request and Fulmen brief, not only the worker
+report. Scope drift is a defect.
+
 ## Input
 
 You receive:
@@ -46,6 +49,8 @@ Run these checks in order when relevant:
 6. **Destructive-operation gates**: for rm, overwrite, mv, restore, or similar
    operations, check provenance, scope, atomicity, durability, recovery honesty,
    and async races.
+7. **Intent preservation**: check whether the implementation still answers the
+   user's request and stays inside the Fulmen brief.
 
 ## Output
 

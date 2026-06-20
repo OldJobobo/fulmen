@@ -12,6 +12,9 @@ skip steps without stating why.
 Fulmen uses these subagent roles: `planner`, `critic`, `explorer`, `worker`,
 `verifier`, and `assembler`.
 
+The parent session remains the source of truth. Subagents provide bounded
+outputs; they do not decide user intent, broaden scope, or authorize work.
+
 ---
 
 ## Invocation Options
@@ -49,6 +52,24 @@ that model.
 
 ---
 
+## Translation Discipline
+
+Each Fulmen handoff must preserve the user's request instead of paraphrasing it
+into a different task.
+
+- Keep the user's exact request visible in the Fulmen brief.
+- Convert intent into subagent prompts only by narrowing scope, never by adding
+  new goals or permissions.
+- Treat subagent output as advisory evidence. The parent must reject any
+  subagent suggestion, edit, or conclusion that exceeds the brief.
+- If planner, critic, explorer, worker, or verifier output conflicts with the
+  user's request, the Fulmen brief, or the declared file/write scope, the parent
+  resolves the conflict before continuing.
+- Do not let a subagent's plan become the task. The task remains the user's
+  request plus the parent-approved brief.
+
+---
+
 ## Step 0 - Mode Decision
 
 Assess the task complexity:
@@ -69,11 +90,13 @@ when proceeding could change the intended outcome.
 ```text
 ## Fulmen Brief
 
+**User request**: [quote or near-verbatim restatement of the user's actual ask]
 **Goal**: [one sentence: what should be accomplished]
 **Constraints**: [hard limits: what cannot change, what is off-limits]
 **Definition of done**: [how to know the task is complete]
 **Out of scope**: [explicit exclusions]
 **File scope** (if known): [directories, files, or modules in play]
+**Delegation rules**: [what subagents may and may not decide]
 ```
 
 Share the brief as a concise progress update. Ask the user only if a missing
@@ -88,6 +111,9 @@ when the next step is blocked on its result.
 
 The planner returns a numbered plan with assumptions and resources listed.
 
+After receiving the planner output, remove or ignore any plan step that changes
+the user request, expands scope, or assumes permission not present in the brief.
+
 ---
 
 ## Step 3 - Spawn Critic
@@ -98,12 +124,17 @@ and the planner's output.
 The critic returns a structured problem list: risks, scope violations, missing
 constraints, and unstated dependencies.
 
+Ask the critic to include translation drift: any place where the plan changes
+the user request, weakens constraints, or implies unapproved work.
+
 ---
 
 ## Step 4 - Integrate
 
 Resolve the plan against the critic's problem list and produce a working plan.
 For each problem raised, mitigate, accept, or revise the plan before proceeding.
+The working plan must name the allowed write scope, rejected planner/critic
+items, and accepted risks. Do not pass unresolved ambiguity to worker.
 
 ---
 
@@ -115,6 +146,9 @@ Fulmen brief.
 
 The explorer returns structured findings: files, functions, dependencies, and
 gaps.
+
+If the explorer answers a broader question than requested, use only the findings
+that match the scoped question.
 
 ---
 
@@ -129,6 +163,9 @@ implementation task. Invoke `worker` with:
 - definition of done from the Fulmen brief
 
 Do not pass the full plan. Pass only the relevant slice.
+Explicitly tell the worker that the slice is its entire authority; it must stop
+and report if the task requires files, behavior, or decisions outside that
+slice. Reject or revert worker output that exceeds the approved slice.
 
 ---
 
@@ -143,6 +180,8 @@ For non-trivial code changes, invoke `verifier` with:
 - the behavior being claimed as complete
 
 Tell the verifier it is read-only and must not edit files.
+Ask it to verify against the original user request and Fulmen brief, not just
+the worker report.
 
 Skip verifier only for doc-only changes, purely mechanical edits, or tasks where
 independent verification would add no useful evidence. State when it is skipped.
@@ -161,7 +200,8 @@ If the outputs are already clear and complete, skip assembler.
 ## Step 9 - Return
 
 Review the final output against the Fulmen brief. Confirm definition of done,
-scope boundaries, critic risks, and verifier findings before reporting back.
+the user's actual request, scope boundaries, critic risks, and verifier findings
+before reporting back.
 
 ---
 

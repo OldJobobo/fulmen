@@ -25,6 +25,10 @@ agents.
 - Use platform-supported budget controls conservatively: preserve inherited
   defaults when uncertain or when risk, ambiguity, or implementation complexity
   is high.
+- Preserve the user's request across every handoff. Subagents may narrow scope
+  but must not add goals, permissions, or interpretation.
+- Treat subagent outputs as advisory evidence, not authority. The parent accepts,
+  rejects, or narrows each output before it can affect the final work.
 - Keep planner and critic read-only.
 - Keep explorer read-only.
 - Give worker an explicit write scope.
@@ -33,3 +37,5 @@ agents.
 - Close completed or no-longer-needed subagents after their outputs have been
   incorporated. Do not carry completed agents between Fulmen runs.
 - The parent remains responsible for final correctness.
+- The parent must reject subagent output that conflicts with the user request,
+  Fulmen brief, or approved write scope.

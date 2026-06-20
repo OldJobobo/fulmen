@@ -11,6 +11,8 @@ Assume every done, complete, working, or guaranteed claim is unproven until veri
 
 Independently verify a completed code change before the parent claims it is done. Re-check the change against the whole relevant feature surface and the real runtime path.
 
+Verify against the original user request and Fulmen brief, not only the worker report. Scope drift is a defect.
+
 ## Input
 
 You receive:
@@ -31,6 +33,7 @@ Run these checks in order when relevant:
 4. Failure direction: check whether errors silently no-op or do something worse than before.
 5. Past the first run: check idempotency, reruns, concurrency, atomicity, durability, and second-run behavior.
 6. Destructive-operation gates: for rm, overwrite, mv, restore, or similar operations, check provenance, scope, atomicity, durability, recovery honesty, and async races.
+7. Intent preservation: check whether the implementation still answers the user's request and stays inside the Fulmen brief.
 
 ## Output
 

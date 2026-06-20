@@ -17,6 +17,9 @@ and which sidecar tasks can run in parallel. Delegate only bounded sidecar work
 that materially advances the run. Do not delegate work whose result is required
 before you can take the next local step.
 
+The parent session remains the source of truth. Subagents provide bounded
+outputs; they do not decide user intent, broaden scope, or authorize work.
+
 ---
 
 ## Codex Subagent Tooling
@@ -80,6 +83,24 @@ that model.
 
 ---
 
+## Translation Discipline
+
+Each Fulmen handoff must preserve the user's request instead of paraphrasing it
+into a different task.
+
+- Keep the user's exact request visible in the Fulmen brief.
+- Convert intent into subagent prompts only by narrowing scope, never by adding
+  new goals or permissions.
+- Treat subagent output as advisory evidence. The parent must reject any
+  subagent suggestion, edit, or conclusion that exceeds the brief.
+- If planner, critic, explorer, worker, or verifier output conflicts with the
+  user's request, the Fulmen brief, or the declared file/write scope, the parent
+  resolves the conflict before continuing.
+- Do not let a subagent's plan become the task. The task remains the user's
+  request plus the parent-approved brief.
+
+---
+
 ## Step 0 - Mode Decision
 
 Assess the task complexity:
@@ -100,11 +121,13 @@ when proceeding could change the intended outcome.
 ```text
 ## Fulmen Brief
 
+**User request**: [quote or near-verbatim restatement of the user's actual ask]
 **Goal**: [one sentence: what should be accomplished]
 **Constraints**: [hard limits: what cannot change, what is off-limits]
 **Definition of done**: [how to know the task is complete]
 **Out of scope**: [explicit exclusions]
 **File scope** (if known): [directories, files, or modules in play]
+**Delegation rules**: [what subagents may and may not decide]
 ```
 
 Share the brief as a concise progress update. Ask the user only if a missing
@@ -120,6 +143,9 @@ be spawned without its result.
 
 The planner returns a numbered plan with assumptions and resources listed.
 
+After receiving the planner output, remove or ignore any plan step that changes
+the user request, expands scope, or assumes permission not present in the brief.
+
 ---
 
 ## Step 3 - Spawn Critic
@@ -130,6 +156,9 @@ complete only when integration is blocked on its result.
 
 The critic returns a structured problem list: risks, scope violations, missing
 constraints, and unstated dependencies.
+
+Ask the critic to include translation drift: any place where the plan changes
+the user request, weakens constraints, or implies unapproved work.
 
 ---
 
@@ -144,6 +173,10 @@ Resolve the plan against the critic's problem list. For each problem raised:
 
 Produce a working plan. This drives the rest of the sequence.
 
+Before delegating further, write a parent-approved working plan. This plan must
+name the allowed write scope, rejected planner/critic items, and any accepted
+risks. Do not pass unresolved ambiguity to worker.
+
 ---
 
 ## Step 5 - Spawn Explorer
@@ -155,6 +188,9 @@ question only. Do not pass the full plan or Fulmen brief.
 Wait for it to complete only when the worker prompt or local critical-path work
 is blocked on its result. The explorer returns structured findings: files,
 functions, dependencies, and gaps.
+
+If the explorer answers a broader question than requested, use only the findings
+that match the scoped question.
 
 ---
 
@@ -172,11 +208,13 @@ implementation task. Use `multi_agent_v1.spawn_agent` with
 Tell the worker to edit directly in its forked workspace, report changed paths,
 and describe the behavioral change. Tell it it is not alone in the codebase,
 must not revert edits made by others, and must adjust to existing concurrent
-changes. Do not pass the full plan. Pass only the relevant slice.
+changes. Do not pass the full plan. Pass only the relevant slice. Explicitly
+tell the worker that the slice is its entire authority; it must stop and report
+if the task requires files, behavior, or decisions outside that slice.
 
 Wait for the worker to complete only when review or integration is blocked on
 its result. Review the returned changes before integrating, refining, or
-reporting them.
+reporting them. Reject or revert worker output that exceeds the approved slice.
 
 ---
 
@@ -194,6 +232,8 @@ For non-trivial code changes, use `multi_agent_v1.spawn_agent` with
 Tell the verifier it is read-only and must not edit files. It should check
 blast radius, sibling variants, runtime order, failure paths, repeat runs, and
 destructive-operation safety where relevant.
+Ask it to verify against the original user request and Fulmen brief, not just
+the worker report.
 
 Skip verifier only for doc-only changes, purely mechanical edits, or tasks where
 independent verification would add no useful evidence. State when it is skipped.
@@ -216,6 +256,7 @@ If the outputs are already clear and complete, skip assembler.
 
 Review the final output against the Fulmen brief:
 
+- Does it still answer the user's actual request?
 - Does it meet the definition of done?
 - Were any out-of-scope changes made?
 - Were the critic's risks addressed, mitigated, or explicitly accepted?

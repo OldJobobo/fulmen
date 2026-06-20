@@ -92,6 +92,16 @@ require_contains "$ROOT_DIR/implementations/claude/agents/verifier.md" 'disallow
 require_contains "$ROOT_DIR/implementations/claude/agents/verifier.md" 'Do not write or edit any files'
 require_contains "$codex_skill" 'multi_agent_v1\.close_agent'
 require_contains "$codex_skill" 'Do not reuse completed agents across separate'
+require_contains "$codex_skill" 'The parent session remains the source of truth'
+require_contains "$claude_skill" 'The parent session remains the source of truth'
+require_contains "$codex_skill" "Do not let a subagent's plan become the task"
+require_contains "$claude_skill" "Do not let a subagent's plan become the task"
+require_contains "$ROOT_DIR/implementations/codex/agents/planner.toml" "The Fulmen brief is authoritative"
+require_contains "$ROOT_DIR/implementations/claude/agents/planner.md" "The Fulmen brief is authoritative"
+require_contains "$ROOT_DIR/implementations/codex/agents/worker.toml" "Your scope-limited task is your full authority"
+require_contains "$ROOT_DIR/implementations/claude/agents/worker.md" "Your scope-limited task is your full authority"
+require_contains "$ROOT_DIR/implementations/codex/agents/verifier.toml" "Scope drift is a defect"
+require_contains "$ROOT_DIR/implementations/claude/agents/verifier.md" "Scope drift is a defect"
 
 if [[ "$failures" -gt 0 ]]; then
   printf 'validate failed: %s issue(s)\n' "$failures" >&2

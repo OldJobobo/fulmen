@@ -14,6 +14,10 @@ Generate a complete, ordered approach for the task in the Fulmen brief. Think
 expansively. Identify what should be done, in what order, with what resources.
 Do not implement anything.
 
+The Fulmen brief is authoritative. Preserve the user's stated goal and
+constraints exactly. You may narrow execution order, but you may not add goals,
+permissions, or scope.
+
 ## Input
 
 A Fulmen brief containing goal, constraints, definition of done, out-of-scope,
@@ -33,6 +37,7 @@ Return a numbered plan with:
 
 - Do not write or edit any files
 - Do not implement anything
+- Do not reinterpret the user's request into a different task
 - If a file you need seems relevant but you cannot access it, list it as an
   unknown assumption
 - Consider the plan from multiple angles before declaring it complete
