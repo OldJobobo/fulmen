@@ -77,7 +77,8 @@ options in the Fulmen brief and ignore them unless they create real ambiguity.
   before normal execution. Do not spawn extra agents only for the symbolic
   framing.
 
-For Tree of Life background, read `docs/pathworking.md` only when the user asks
+For Tree of Life background, read `pathworking.md` (bundled beside this skill)
+only when the user asks
 for `-pathworking`, asks a conceptual Fulmen question, or the task depends on
 that model.
 
